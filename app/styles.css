@@ -2533,6 +2533,17 @@ html[data-theme='dark'] {
     padding: 14px;
   }
 
+  #detail-root .comment-input {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-inline: 8px;
+  }
+
+  #detail-root .comment-input textarea {
+    padding: 12px 14px;
+  }
+
   .detail-title h2 {
     font-size: 22px;
   }
@@ -2551,5 +2562,6 @@ html[data-theme='dark'] {
 
   .comment-input button {
     width: 100%;
+    margin-top: 0;
   }
 }

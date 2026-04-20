@@ -2077,6 +2077,20 @@ html[data-theme='dark'] {
   margin-top: 8px;
 }
 
+@media (max-width: 700px) {
+  .comment-input {
+    padding-inline: 4px;
+  }
+
+  .comment-input textarea {
+    padding: 10px 12px;
+  }
+
+  .comment-input button {
+    margin-top: 12px;
+  }
+}
+
 /* --- Delete Issue Button --- */
 .delete-issue-btn {
   position: relative;

@@ -2048,8 +2048,11 @@ html[data-theme='dark'] {
   white-space: pre-wrap;
 }
 
-.comment-input {
+#detail-root .comment-input {
   margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .comment-input textarea {
@@ -2073,21 +2076,22 @@ html[data-theme='dark'] {
   border-color: var(--link);
 }
 
-.comment-input button {
-  margin-top: 8px;
+#detail-root .comment-input button {
+  margin-top: 0;
+  align-self: flex-start;
 }
 
 @media (max-width: 700px) {
-  .comment-input {
+  #detail-root .comment-input {
     padding-inline: 4px;
   }
 
-  .comment-input textarea {
+  #detail-root .comment-input textarea {
     padding: 10px 12px;
   }
 
-  .comment-input button {
-    margin-top: 12px;
+  #detail-root .comment-input button {
+    align-self: stretch;
   }
 }
 
@@ -2480,7 +2484,7 @@ html[data-theme='dark'] {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .app-header {
     gap: var(--space-3);
     padding-left: var(--space-4);
@@ -2536,12 +2540,12 @@ html[data-theme='dark'] {
   #detail-root .comment-input {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding-inline: 8px;
+    gap: 16px;
+    padding-inline: 20px;
   }
 
   #detail-root .comment-input textarea {
-    padding: 12px 14px;
+    padding: 14px 20px;
   }
 
   .detail-title h2 {
@@ -2560,7 +2564,7 @@ html[data-theme='dark'] {
     width: 100%;
   }
 
-  .comment-input button {
+  #detail-root .comment-input button {
     width: 100%;
     margin-top: 0;
   }

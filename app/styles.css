@@ -1235,6 +1235,53 @@ input.inline-edit:focus {
 .epic-children {
   padding: 8px 12px 12px;
 }
+.epic-children__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-6);
+}
+.epic-sort-bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.epic-sort-bar__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.epic-sort-chip {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-bg) 80%, var(--bg));
+  color: var(--muted);
+  padding: var(--space-3) var(--space-6);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.epic-sort-chip:hover {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--link) 25%, var(--border));
+}
+.epic-sort-chip.is-active {
+  color: color-mix(in srgb, var(--link) 70%, var(--fg));
+  border-color: color-mix(in srgb, var(--link) 35%, var(--border));
+  background: color-mix(in srgb, var(--link) 12%, var(--bg));
+}
+.epic-sort-chip:focus {
+  outline: 2px solid color-mix(in srgb, var(--link) 45%, transparent);
+  outline-offset: var(--outline-offset-m);
+}
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -2432,6 +2479,15 @@ html[data-theme='dark'] {
   .epic-header progress {
     width: 100%;
     max-width: 180px;
+  }
+
+  .epic-children__toolbar,
+  .epic-sort-bar {
+    justify-content: flex-start;
+  }
+
+  .epic-sort-bar__label {
+    width: 100%;
   }
 
   .board-root {

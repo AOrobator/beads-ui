@@ -12,6 +12,14 @@ import { createIssueRowRenderer } from './issue-row.js';
  */
 
 /**
+ * @typedef {'asc'|'desc'} EpicSortDirection
+ */
+
+/**
+ * @typedef {{ mode: EpicSortMode, direction: EpicSortDirection }} EpicSortState
+ */
+
+/**
  * Epics view (push-only):
  * - Derives epic groups from the local issues store (no RPC reads).
  * - Subscribes to `tab:epics` for top-level membership.
@@ -40,8 +48,8 @@ export function createEpicsView(
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
-  /** @type {Map<string, EpicSortMode>} */
-  const epic_sort_modes = new Map();
+  /** @type {Map<string, EpicSortState>} */
+  const epic_sort_states = new Map();
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
   // Live re-render on pushes: recompute groups when stores change
@@ -87,9 +95,11 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
-    const sort_mode = getSortMode(id);
+    const sort_state = getSortState(id);
     // Compose children via selectors
-    const list = selectors ? selectors.selectEpicChildren(id, sort_mode) : [];
+    const list = selectors
+      ? selectors.selectEpicChildren(id, sort_state.mode, sort_state.direction)
+      : [];
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
@@ -121,10 +131,17 @@ export function createEpicsView(
               ${is_loading
                 ? null
                 : html`<div class="epic-children__toolbar">
-                    <div class="epic-sort-bar" role="toolbar">
-                      <span class="epic-sort-bar__label">Sort tickets</span>
-                      ${sortModeButton(id, sort_mode, 'priority', 'Priority')}
-                      ${sortModeButton(id, sort_mode, 'status', 'Status')}
+                    <div class="epic-sort-bar">
+                      <div class="epic-sort-bar__header">
+                        <span class="epic-sort-bar__label">Sort tickets</span>
+                        <span class="epic-sort-bar__current"
+                          >${describeSortState(sort_state)}</span
+                        >
+                      </div>
+                      <div class="epic-sort-bar__controls" role="toolbar">
+                        ${sortModeButton(id, sort_state, 'priority')}
+                        ${sortModeButton(id, sort_state, 'status')}
+                      </div>
                     </div>
                   </div>`}
               ${is_loading
@@ -133,12 +150,13 @@ export function createEpicsView(
                   ? html`<div class="muted">No issues found</div>`
                   : html`<table class="table epic-issues-table">
                       <colgroup>
-                        <col style="width: 100px" />
-                        <col style="width: 120px" />
-                        <col />
-                        <col style="width: 120px" />
-                        <col style="width: 160px" />
-                        <col style="width: 130px" />
+                        <col style="width: 92px" />
+                        <col style="width: 96px" />
+                        <col style="width: 38%" />
+                        <col style="width: 110px" />
+                        <col style="width: 132px" />
+                        <col style="width: 112px" />
+                        <col style="width: 72px" />
                       </colgroup>
                       <thead>
                         <tr>
@@ -148,6 +166,7 @@ export function createEpicsView(
                           <th>Status</th>
                           <th>Assignee</th>
                           <th>Priority</th>
+                          <th>Deps</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -176,30 +195,32 @@ export function createEpicsView(
 
   /**
    * @param {string} epic_id
-   * @returns {EpicSortMode}
+   * @returns {EpicSortState}
    */
-  function getSortMode(epic_id) {
-    return epic_sort_modes.get(epic_id) || 'priority';
+  function getSortState(epic_id) {
+    return (
+      epic_sort_states.get(epic_id) || { mode: 'priority', direction: 'asc' }
+    );
   }
 
   /**
    * @param {string} epic_id
-   * @param {EpicSortMode} current_mode
+   * @param {EpicSortState} current_state
    * @param {EpicSortMode} next_mode
-   * @param {string} label
    */
-  function sortModeButton(epic_id, current_mode, next_mode, label) {
-    const is_active = current_mode === next_mode;
+  function sortModeButton(epic_id, current_state, next_mode) {
+    const is_active = current_state.mode === next_mode;
+    const preview_direction = is_active
+      ? toggleDirection(current_state.direction)
+      : 'asc';
     return html`<button
       type="button"
       class="epic-sort-chip ${is_active ? 'is-active' : ''}"
       aria-pressed=${is_active}
-      title=${next_mode === 'status'
-        ? 'Show open work before closed work'
-        : 'Show highest-priority work first'}
-      @click=${() => setSortMode(epic_id, next_mode)}
+      title=${buttonTitle(next_mode, preview_direction, is_active)}
+      @click=${() => toggleSortState(epic_id, next_mode)}
     >
-      ${label}
+      ${buttonLabel(next_mode, is_active ? current_state.direction : null)}
     </button>`;
   }
 
@@ -207,12 +228,78 @@ export function createEpicsView(
    * @param {string} epic_id
    * @param {EpicSortMode} next_mode
    */
-  function setSortMode(epic_id, next_mode) {
-    if (getSortMode(epic_id) === next_mode) {
-      return;
-    }
-    epic_sort_modes.set(epic_id, next_mode);
+  function toggleSortState(epic_id, next_mode) {
+    const current_state = getSortState(epic_id);
+    /** @type {EpicSortState} */
+    const next_state =
+      current_state.mode === next_mode
+        ? {
+            mode: next_mode,
+            direction: toggleDirection(current_state.direction)
+          }
+        : { mode: next_mode, direction: 'asc' };
+    epic_sort_states.set(epic_id, next_state);
     doRender();
+  }
+
+  /**
+   * @param {EpicSortDirection} direction
+   * @returns {EpicSortDirection}
+   */
+  function toggleDirection(direction) {
+    return direction === 'asc' ? 'desc' : 'asc';
+  }
+
+  /**
+   * @param {EpicSortState} sort_state
+   */
+  function describeSortState(sort_state) {
+    return `${modeLabel(sort_state.mode)}: ${directionLabel(
+      sort_state.mode,
+      sort_state.direction
+    )}`;
+  }
+
+  /**
+   * @param {EpicSortMode} mode
+   * @param {EpicSortDirection|null} direction
+   */
+  function buttonLabel(mode, direction) {
+    if (!direction) {
+      return modeLabel(mode);
+    }
+    return `${modeLabel(mode)}: ${directionLabel(mode, direction)}`;
+  }
+
+  /**
+   * @param {EpicSortMode} mode
+   */
+  function modeLabel(mode) {
+    return mode === 'status' ? 'Status' : 'Priority';
+  }
+
+  /**
+   * @param {EpicSortMode} mode
+   * @param {EpicSortDirection} direction
+   */
+  function directionLabel(mode, direction) {
+    if (mode === 'status') {
+      return direction === 'asc' ? 'Open to closed' : 'Closed to open';
+    }
+    return direction === 'asc' ? 'High to low' : 'Low to high';
+  }
+
+  /**
+   * @param {EpicSortMode} mode
+   * @param {EpicSortDirection} preview_direction
+   * @param {boolean} is_active
+   */
+  function buttonTitle(mode, preview_direction, is_active) {
+    const action = is_active ? 'Reverse to' : 'Sort by';
+    return `${action} ${modeLabel(mode).toLowerCase()} ${directionLabel(
+      mode,
+      preview_direction
+    ).toLowerCase()}`;
   }
 
   /**

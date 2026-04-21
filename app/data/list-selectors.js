@@ -68,9 +68,14 @@ export function createListSelectors(issue_stores = undefined) {
    *
    * @param {string} epic_id
    * @param {'priority'|'status'} [sort_mode]
+   * @param {'asc'|'desc'} [sort_direction]
    * @returns {IssueLite[]}
    */
-  function selectEpicChildren(epic_id, sort_mode = 'priority') {
+  function selectEpicChildren(
+    epic_id,
+    sort_mode = 'priority',
+    sort_direction = 'asc'
+  ) {
     if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
       return [];
     }
@@ -83,7 +88,11 @@ export function createListSelectors(issue_stores = undefined) {
     const dependents = Array.isArray(epic?.dependents) ? epic.dependents : [];
     const comparator =
       sort_mode === 'status' ? cmpStatusThenPriority : cmpPriorityThenCreated;
-    return /** @type {IssueLite[]} */ (dependents.slice().sort(comparator));
+    const ordered = dependents.slice().sort(comparator);
+    if (sort_direction === 'desc') {
+      ordered.reverse();
+    }
+    return /** @type {IssueLite[]} */ (ordered);
   }
 
   /**

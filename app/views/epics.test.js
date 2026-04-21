@@ -660,7 +660,7 @@ describe('views/epics', () => {
 
     const alphaStatusButton = /** @type {HTMLButtonElement|null} */ (
       mount.querySelector(
-        '[data-epic-id="UI-30"] .epic-sort-chip[title="Show open work before closed work"]'
+        '[data-epic-id="UI-30"] .epic-sort-chip[title="Sort by status open to closed"]'
       )
     );
     alphaStatusButton?.dispatchEvent(
@@ -677,5 +677,125 @@ describe('views/epics', () => {
 
     expect(alphaIds).toEqual(['UI-32', 'UI-31']);
     expect(betaIds).toEqual(['UI-41', 'UI-42']);
+    expect(
+      mount.querySelector('[data-epic-id="UI-30"] .epic-sort-bar__current')
+        ?.textContent
+    ).toContain('Status: Open to closed');
+    expect(
+      mount.querySelector('[data-epic-id="UI-40"] .epic-sort-bar__current')
+        ?.textContent
+    ).toContain('Priority: High to low');
+  });
+
+  test('toggles active sort button between ascending and descending', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores7 = new Map();
+    const listeners7 = new Set();
+    /** @param {string} id */
+    const getStore7 = (id) => {
+      let s = stores7.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores7.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners7)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores7 = {
+      getStore: getStore7,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore7(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners7.add(fn);
+        return () => listeners7.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores7.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Priority Toggle Epic',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-51' }, { id: 'UI-52' }]
+        }
+      ]
+    });
+    issueStores7.getStore('detail:UI-50');
+    issueStores7.getStore('detail:UI-50').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-50',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-50',
+          title: 'Priority Toggle Epic',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-51',
+              title: 'Higher priority',
+              status: 'open',
+              priority: 0,
+              issue_type: 'task'
+            },
+            {
+              id: 'UI-52',
+              title: 'Lower priority',
+              status: 'open',
+              priority: 3,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores7)
+    );
+    await view.load();
+
+    const priorityButton = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector(
+        '[data-epic-id="UI-50"] .epic-sort-chip[title="Reverse to priority low to high"]'
+      )
+    );
+    priorityButton?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    );
+    await Promise.resolve();
+
+    const ids = Array.from(
+      mount.querySelectorAll('[data-epic-id="UI-50"] tr.epic-row td.mono')
+    ).map((cell) => cell.textContent?.trim());
+
+    expect(ids).toEqual(['UI-52', 'UI-51']);
+    expect(
+      mount.querySelector('[data-epic-id="UI-50"] .epic-sort-bar__current')
+        ?.textContent
+    ).toContain('Priority: Low to high');
   });
 });

@@ -1242,15 +1242,34 @@ input.inline-edit:focus {
 }
 .epic-sort-bar {
   display: inline-flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+.epic-sort-bar__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 .epic-sort-bar__label {
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
+}
+.epic-sort-bar__current {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.epic-sort-bar__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 .epic-sort-chip {
   appearance: none;
@@ -2482,11 +2501,14 @@ html[data-theme='dark'] {
   }
 
   .epic-children__toolbar,
-  .epic-sort-bar {
+  .epic-sort-bar,
+  .epic-sort-bar__header,
+  .epic-sort-bar__controls {
     justify-content: flex-start;
   }
 
-  .epic-sort-bar__label {
+  .epic-sort-bar__label,
+  .epic-sort-bar__current {
     width: 100%;
   }
 

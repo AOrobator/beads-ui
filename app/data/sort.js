@@ -45,3 +45,35 @@ export function cmpClosedDesc(a, b) {
   const idb = b?.id;
   return ida < idb ? -1 : ida > idb ? 1 : 0;
 }
+
+/**
+ * Compare by active status first (open, in progress, closed), then priority asc,
+ * then created_at asc, then id asc.
+ *
+ * @param {IssueLite} a
+ * @param {IssueLite} b
+ */
+export function cmpStatusThenPriority(a, b) {
+  const sa = statusRank(a.status);
+  const sb = statusRank(b.status);
+  if (sa !== sb) {
+    return sa - sb;
+  }
+  return cmpPriorityThenCreated(a, b);
+}
+
+/**
+ * @param {IssueLite['status']} status
+ */
+function statusRank(status) {
+  if (status === 'open') {
+    return 0;
+  }
+  if (status === 'in_progress') {
+    return 1;
+  }
+  if (status === 'closed') {
+    return 2;
+  }
+  return 3;
+}

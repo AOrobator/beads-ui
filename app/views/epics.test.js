@@ -527,4 +527,155 @@ describe('views/epics', () => {
     );
     expect(input).not.toBeNull();
   });
+
+  test('applies sort mode per epic without affecting other groups', async () => {
+    document.body.innerHTML = '<div id="m"></div>';
+    const mount = /** @type {HTMLElement} */ (document.getElementById('m'));
+    const data = {
+      updateIssue: vi.fn(),
+      getIssue: vi.fn(async (id) => ({ id }))
+    };
+    const stores6 = new Map();
+    const listeners6 = new Set();
+    /** @param {string} id */
+    const getStore6 = (id) => {
+      let s = stores6.get(id);
+      if (!s) {
+        s = createSubscriptionIssueStore(id);
+        stores6.set(id, s);
+        s.subscribe(() => {
+          for (const fn of Array.from(listeners6)) {
+            try {
+              fn();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+      return s;
+    };
+    const issueStores6 = {
+      getStore: getStore6,
+      /** @param {string} id */
+      snapshotFor(id) {
+        return getStore6(id).snapshot().slice();
+      },
+      /** @param {() => void} fn */
+      subscribe(fn) {
+        listeners6.add(fn);
+        return () => listeners6.delete(fn);
+      }
+    };
+    const subscriptions = createSubscriptionStore(async () => {});
+    issueStores6.getStore('tab:epics').applyPush({
+      type: 'snapshot',
+      id: 'tab:epics',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-30',
+          title: 'Alpha Epic',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-31' }, { id: 'UI-32' }]
+        },
+        {
+          id: 'UI-40',
+          title: 'Beta Epic',
+          issue_type: 'epic',
+          dependents: [{ id: 'UI-41' }, { id: 'UI-42' }]
+        }
+      ]
+    });
+    issueStores6.getStore('detail:UI-30');
+    issueStores6.getStore('detail:UI-30').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-30',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-30',
+          title: 'Alpha Epic',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-31',
+              title: 'Closed first by priority',
+              status: 'closed',
+              priority: 0,
+              issue_type: 'task'
+            },
+            {
+              id: 'UI-32',
+              title: 'Open lower priority',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    issueStores6.getStore('detail:UI-40');
+    issueStores6.getStore('detail:UI-40').applyPush({
+      type: 'snapshot',
+      id: 'detail:UI-40',
+      revision: 1,
+      issues: [
+        {
+          id: 'UI-40',
+          title: 'Beta Epic',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'UI-41',
+              title: 'Closed first by priority',
+              status: 'closed',
+              priority: 0,
+              issue_type: 'task'
+            },
+            {
+              id: 'UI-42',
+              title: 'Open lower priority',
+              status: 'open',
+              priority: 2,
+              issue_type: 'task'
+            }
+          ]
+        }
+      ]
+    });
+    const view = createEpicsView(
+      mount,
+      /** @type {any} */ (data),
+      () => {},
+      subscriptions,
+      /** @type {any} */ (issueStores6)
+    );
+    await view.load();
+
+    const secondHeader = mount.querySelectorAll('.epic-header')[1];
+    secondHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await Promise.resolve();
+
+    const alphaStatusButton = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector(
+        '[data-epic-id="UI-30"] .epic-sort-chip[title="Show open work before closed work"]'
+      )
+    );
+    alphaStatusButton?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    );
+    await Promise.resolve();
+
+    const alphaIds = Array.from(
+      mount.querySelectorAll('[data-epic-id="UI-30"] tr.epic-row td.mono')
+    ).map((cell) => cell.textContent?.trim());
+    const betaIds = Array.from(
+      mount.querySelectorAll('[data-epic-id="UI-40"] tr.epic-row td.mono')
+    ).map((cell) => cell.textContent?.trim());
+
+    expect(alphaIds).toEqual(['UI-32', 'UI-31']);
+    expect(betaIds).toEqual(['UI-41', 'UI-42']);
+  });
 });

@@ -8,6 +8,10 @@ import { createIssueRowRenderer } from './issue-row.js';
  */
 
 /**
+ * @typedef {'priority'|'status'} EpicSortMode
+ */
+
+/**
  * Epics view (push-only):
  * - Derives epic groups from the local issues store (no RPC reads).
  * - Subscribes to `tab:epics` for top-level membership.
@@ -36,6 +40,8 @@ export function createEpicsView(
   const loading = new Set();
   /** @type {Map<string, () => Promise<void>>} */
   const epic_unsubs = new Map();
+  /** @type {Map<string, EpicSortMode>} */
+  const epic_sort_modes = new Map();
   // Centralized selection helpers
   const selectors = issue_stores ? createListSelectors(issue_stores) : null;
   // Live re-render on pushes: recompute groups when stores change
@@ -81,8 +87,9 @@ export function createEpicsView(
     const epic = g.epic || {};
     const id = String(epic.id || '');
     const is_open = expanded.has(id);
+    const sort_mode = getSortMode(id);
     // Compose children via selectors
-    const list = selectors ? selectors.selectEpicChildren(id) : [];
+    const list = selectors ? selectors.selectEpicChildren(id, sort_mode) : [];
     const is_loading = loading.has(id);
     return html`
       <div class="epic-group" data-epic-id=${id}>
@@ -111,6 +118,15 @@ export function createEpicsView(
         </div>
         ${is_open
           ? html`<div class="epic-children">
+              ${is_loading
+                ? null
+                : html`<div class="epic-children__toolbar">
+                    <div class="epic-sort-bar" role="toolbar">
+                      <span class="epic-sort-bar__label">Sort tickets</span>
+                      ${sortModeButton(id, sort_mode, 'priority', 'Priority')}
+                      ${sortModeButton(id, sort_mode, 'status', 'Status')}
+                    </div>
+                  </div>`}
               ${is_loading
                 ? html`<div class="muted">Loading…</div>`
                 : list.length === 0
@@ -156,6 +172,47 @@ export function createEpicsView(
     } catch {
       // swallow; UI remains
     }
+  }
+
+  /**
+   * @param {string} epic_id
+   * @returns {EpicSortMode}
+   */
+  function getSortMode(epic_id) {
+    return epic_sort_modes.get(epic_id) || 'priority';
+  }
+
+  /**
+   * @param {string} epic_id
+   * @param {EpicSortMode} current_mode
+   * @param {EpicSortMode} next_mode
+   * @param {string} label
+   */
+  function sortModeButton(epic_id, current_mode, next_mode, label) {
+    const is_active = current_mode === next_mode;
+    return html`<button
+      type="button"
+      class="epic-sort-chip ${is_active ? 'is-active' : ''}"
+      aria-pressed=${is_active}
+      title=${next_mode === 'status'
+        ? 'Show open work before closed work'
+        : 'Show highest-priority work first'}
+      @click=${() => setSortMode(epic_id, next_mode)}
+    >
+      ${label}
+    </button>`;
+  }
+
+  /**
+   * @param {string} epic_id
+   * @param {EpicSortMode} next_mode
+   */
+  function setSortMode(epic_id, next_mode) {
+    if (getSortMode(epic_id) === next_mode) {
+      return;
+    }
+    epic_sort_modes.set(epic_id, next_mode);
+    doRender();
   }
 
   /**

@@ -6,7 +6,11 @@
 /**
  * @typedef {{ id: string, title?: string, status?: 'open'|'in_progress'|'closed', priority?: number, issue_type?: string, created_at?: number, updated_at?: number, closed_at?: number }} IssueLite
  */
-import { cmpClosedDesc, cmpPriorityThenCreated } from './sort.js';
+import {
+  cmpClosedDesc,
+  cmpPriorityThenCreated,
+  cmpStatusThenPriority
+} from './sort.js';
 
 /**
  * Factory for list selectors.
@@ -63,9 +67,10 @@ export function createListSelectors(issue_stores = undefined) {
    * Sorted as Issues List (priority asc → created asc).
    *
    * @param {string} epic_id
+   * @param {'priority'|'status'} [sort_mode]
    * @returns {IssueLite[]}
    */
-  function selectEpicChildren(epic_id) {
+  function selectEpicChildren(epic_id, sort_mode = 'priority') {
     if (!issue_stores || typeof issue_stores.snapshotFor !== 'function') {
       return [];
     }
@@ -76,9 +81,9 @@ export function createListSelectors(issue_stores = undefined) {
     );
     const epic = arr.find((it) => String(it?.id || '') === String(epic_id));
     const dependents = Array.isArray(epic?.dependents) ? epic.dependents : [];
-    return /** @type {IssueLite[]} */ (
-      dependents.slice().sort(cmpPriorityThenCreated)
-    );
+    const comparator =
+      sort_mode === 'status' ? cmpStatusThenPriority : cmpPriorityThenCreated;
+    return /** @type {IssueLite[]} */ (dependents.slice().sort(comparator));
   }
 
   /**

@@ -658,12 +658,12 @@ describe('views/epics', () => {
     secondHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await Promise.resolve();
 
-    const alphaStatusButton = /** @type {HTMLButtonElement|null} */ (
+    const alphaPriorityButton = /** @type {HTMLButtonElement|null} */ (
       mount.querySelector(
-        '[data-epic-id="UI-30"] .epic-sort-chip[title="Sort by status open to closed"]'
+        '[data-epic-id="UI-30"] .epic-sort-chip[title="Sort by priority high to low"]'
       )
     );
-    alphaStatusButton?.dispatchEvent(
+    alphaPriorityButton?.dispatchEvent(
       new MouseEvent('click', { bubbles: true, cancelable: true })
     );
     await Promise.resolve();
@@ -675,16 +675,16 @@ describe('views/epics', () => {
       mount.querySelectorAll('[data-epic-id="UI-40"] tr.epic-row td.mono')
     ).map((cell) => cell.textContent?.trim());
 
-    expect(alphaIds).toEqual(['UI-32', 'UI-31']);
-    expect(betaIds).toEqual(['UI-41', 'UI-42']);
+    expect(alphaIds).toEqual(['UI-31', 'UI-32']);
+    expect(betaIds).toEqual(['UI-42', 'UI-41']);
     expect(
       mount.querySelector('[data-epic-id="UI-30"] .epic-sort-bar__current')
         ?.textContent
-    ).toContain('Status: Open to closed');
+    ).toContain('Priority: High to low');
     expect(
       mount.querySelector('[data-epic-id="UI-40"] .epic-sort-bar__current')
         ?.textContent
-    ).toContain('Priority: High to low');
+    ).toContain('Status: Open to closed');
   });
 
   test('toggles active sort button between ascending and descending', async () => {
@@ -780,10 +780,20 @@ describe('views/epics', () => {
 
     const priorityButton = /** @type {HTMLButtonElement|null} */ (
       mount.querySelector(
-        '[data-epic-id="UI-50"] .epic-sort-chip[title="Reverse to priority low to high"]'
+        '[data-epic-id="UI-50"] .epic-sort-chip[title="Sort by priority high to low"]'
       )
     );
     priorityButton?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    );
+    await Promise.resolve();
+
+    const reversePriorityButton = /** @type {HTMLButtonElement|null} */ (
+      mount.querySelector(
+        '[data-epic-id="UI-50"] .epic-sort-chip[title="Reverse to priority low to high"]'
+      )
+    );
+    reversePriorityButton?.dispatchEvent(
       new MouseEvent('click', { bubbles: true, cancelable: true })
     );
     await Promise.resolve();

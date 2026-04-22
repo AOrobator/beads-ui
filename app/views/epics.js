@@ -199,7 +199,7 @@ export function createEpicsView(
    */
   function getSortState(epic_id) {
     return (
-      epic_sort_states.get(epic_id) || { mode: 'priority', direction: 'asc' }
+      epic_sort_states.get(epic_id) || { mode: 'status', direction: 'asc' }
     );
   }
 

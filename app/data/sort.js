@@ -47,7 +47,7 @@ export function cmpClosedDesc(a, b) {
 }
 
 /**
- * Compare by active status first (open, in progress, closed), then priority asc,
+ * Compare by active status first (in progress, open, closed), then priority asc,
  * then created_at asc, then id asc.
  *
  * @param {IssueLite} a
@@ -66,10 +66,10 @@ export function cmpStatusThenPriority(a, b) {
  * @param {IssueLite['status']} status
  */
 function statusRank(status) {
-  if (status === 'open') {
+  if (status === 'in_progress') {
     return 0;
   }
-  if (status === 'in_progress') {
+  if (status === 'open') {
     return 1;
   }
   if (status === 'closed') {

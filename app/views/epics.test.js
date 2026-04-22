@@ -577,13 +577,13 @@ describe('views/epics', () => {
           id: 'UI-30',
           title: 'Alpha Epic',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-31' }, { id: 'UI-32' }]
+          dependents: [{ id: 'UI-31' }, { id: 'UI-32' }, { id: 'UI-33' }]
         },
         {
           id: 'UI-40',
           title: 'Beta Epic',
           issue_type: 'epic',
-          dependents: [{ id: 'UI-41' }, { id: 'UI-42' }]
+          dependents: [{ id: 'UI-41' }, { id: 'UI-42' }, { id: 'UI-43' }]
         }
       ]
     });
@@ -610,6 +610,13 @@ describe('views/epics', () => {
               title: 'Open lower priority',
               status: 'open',
               priority: 2,
+              issue_type: 'task'
+            },
+            {
+              id: 'UI-33',
+              title: 'In progress lowest priority',
+              status: 'in_progress',
+              priority: 3,
               issue_type: 'task'
             }
           ]
@@ -639,6 +646,13 @@ describe('views/epics', () => {
               title: 'Open lower priority',
               status: 'open',
               priority: 2,
+              issue_type: 'task'
+            },
+            {
+              id: 'UI-43',
+              title: 'In progress lowest priority',
+              status: 'in_progress',
+              priority: 3,
               issue_type: 'task'
             }
           ]
@@ -675,8 +689,8 @@ describe('views/epics', () => {
       mount.querySelectorAll('[data-epic-id="UI-40"] tr.epic-row td.mono')
     ).map((cell) => cell.textContent?.trim());
 
-    expect(alphaIds).toEqual(['UI-31', 'UI-32']);
-    expect(betaIds).toEqual(['UI-42', 'UI-41']);
+    expect(alphaIds).toEqual(['UI-31', 'UI-32', 'UI-33']);
+    expect(betaIds).toEqual(['UI-43', 'UI-42', 'UI-41']);
     expect(
       mount.querySelector('[data-epic-id="UI-30"] .epic-sort-bar__current')
         ?.textContent
@@ -684,7 +698,7 @@ describe('views/epics', () => {
     expect(
       mount.querySelector('[data-epic-id="UI-40"] .epic-sort-bar__current')
         ?.textContent
-    ).toContain('Status: Open to closed');
+    ).toContain('Status: In progress to closed');
   });
 
   test('toggles active sort button between ascending and descending', async () => {

@@ -209,6 +209,51 @@ describe('list-selectors', () => {
     expect(out).toEqual(['E2', 'E1']);
   });
 
+  test('selectEpicChildren status sort prefers in_progress then open then closed', async () => {
+    const { issueStores, selectors } = setup();
+    issueStores.getStore('detail:77').applyPush({
+      type: 'snapshot',
+      id: 'detail:77',
+      revision: 1,
+      issues: [
+        {
+          id: '77',
+          issue_type: 'epic',
+          dependents: [
+            {
+              id: 'E-open',
+              status: 'open',
+              priority: 1,
+              created_at: 10_000,
+              updated_at: 10_000,
+              closed_at: null
+            },
+            {
+              id: 'E-progress',
+              status: 'in_progress',
+              priority: 3,
+              created_at: 11_000,
+              updated_at: 11_000,
+              closed_at: null
+            },
+            {
+              id: 'E-closed',
+              status: 'closed',
+              priority: 0,
+              created_at: 9_000,
+              updated_at: 9_000,
+              closed_at: 12_000
+            }
+          ]
+        }
+      ]
+    });
+    const out = selectors
+      .selectEpicChildren('77', 'status', 'asc')
+      .map((x) => x.id);
+    expect(out).toEqual(['E-progress', 'E-open', 'E-closed']);
+  });
+
   test('subscribe triggers once per issues envelope', async () => {
     const { issueStores, selectors } = setup();
     let calls = 0;

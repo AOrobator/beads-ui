@@ -284,7 +284,9 @@ export function createEpicsView(
    */
   function directionLabel(mode, direction) {
     if (mode === 'status') {
-      return direction === 'asc' ? 'Open to closed' : 'Closed to open';
+      return direction === 'asc'
+        ? 'In progress to closed'
+        : 'Closed to in progress';
     }
     return direction === 'asc' ? 'High to low' : 'Low to high';
   }

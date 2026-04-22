@@ -19,7 +19,7 @@ describe('list adapters for subscription types', () => {
 
   test('mapSubscriptionToBdArgs returns args for epics', () => {
     const args = mapSubscriptionToBdArgs({ type: 'epics' });
-    expect(args).toEqual(['epic', 'status', '--json']);
+    expect(args).toEqual(['list', '--json', '--tree=false', '--type', 'epic']);
   });
 
   test('mapSubscriptionToBdArgs returns args for blocked-issues', () => {
@@ -235,6 +235,36 @@ describe('list adapters for subscription types', () => {
       expect(res.items[0]).toMatchObject({
         id: 'E-1',
         status: 'open'
+      });
+    }
+  });
+
+  test('keeps flat epic rows from list --type epic output', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
+      code: 0,
+      stdoutJson: [
+        {
+          id: 'bd-pub1730',
+          title: 'Publisher Links Mini Onboarding',
+          status: 'open',
+          issue_type: 'epic',
+          created_at: '2026-04-22T00:00:00.000Z',
+          updated_at: '2026-04-22T00:00:00.000Z',
+          closed_at: null
+        }
+      ]
+    });
+
+    const res = await fetchListForSubscription({ type: 'epics' });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0]).toMatchObject({
+        id: 'bd-pub1730',
+        title: 'Publisher Links Mini Onboarding',
+        status: 'open',
+        issue_type: 'epic'
       });
     }
   });

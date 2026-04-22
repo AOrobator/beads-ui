@@ -17,7 +17,7 @@ export function mapSubscriptionToBdArgs(spec) {
       return ['list', '--json', '--tree=false'];
     }
     case 'epics': {
-      return ['epic', 'status', '--json'];
+      return ['list', '--json', '--tree=false', '--type', 'epic'];
     }
     case 'blocked-issues': {
       return ['blocked', '--json'];

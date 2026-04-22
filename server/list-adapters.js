@@ -177,33 +177,39 @@ export async function fetchListForSubscription(spec, options = {}) {
       }
     }
 
-    // Special-case mapping for `epics`: current bd output nests the epic under
-    // an `epic` key and exposes counters at the top level. Flatten so that
-    // each entry has a top-level `id` and core fields expected by the registry.
+    // Special-case mapping for `epics`: keep the complete epic list from
+    // `bd list --type epic`, then opportunistically merge counters from
+    // `bd epic status --json` when available.
     if (String(spec.type) === 'epics') {
-      raw = raw.map((it) => {
-        if (it && typeof it === 'object' && 'epic' in it) {
-          const e = /** @type {any} */ (it).epic || {};
-          /** @type {Record<string, unknown>} */
-          const flat = {
-            // Required minimal fields for registry + client rendering
-            id: String(e.id ?? ''),
-            title: e.title,
-            status: e.status,
-            issue_type: e.issue_type || 'epic',
-            created_at: e.created_at,
-            updated_at: e.updated_at,
-            closed_at: e.closed_at ?? null,
-            deleted_at: e.deleted_at ?? null,
-            // Preserve useful counters from bd output
-            total_children: /** @type {any} */ (it).total_children,
-            closed_children: /** @type {any} */ (it).closed_children,
-            eligible_for_close: /** @type {any} */ (it).eligible_for_close
-          };
-          return flat;
+      raw = flattenEpicRows(raw);
+      try {
+        const counters = await runBdJson(['epic', 'status', '--json'], {
+          cwd: options.cwd
+        });
+        if (counters?.code === 0 && 'stdoutJson' in counters) {
+          const status_rows = flattenEpicRows(
+            Array.isArray(counters.stdoutJson)
+              ? counters.stdoutJson
+              : counters.stdoutJson &&
+                    typeof counters.stdoutJson === 'object'
+                ? [counters.stdoutJson]
+                : []
+          );
+          const counts_by_id = new Map(
+            status_rows.map((it) => [String(it.id || ''), it])
+          );
+          raw = raw.map((it) => {
+            if (!it || typeof it !== 'object') {
+              return it;
+            }
+            const id = String((/** @type {any} */ (it)).id || '');
+            const counts = counts_by_id.get(id);
+            return counts ? { ...it, ...counts } : it;
+          });
         }
-        return it;
-      });
+      } catch (err) {
+        log('epic status lookup failed for %o: %o', spec, err);
+      }
       raw = raw.filter((it) => {
         if (!it || typeof it !== 'object') {
           return false;
@@ -248,6 +254,37 @@ function badRequest(message) {
   // @ts-expect-error add code
   e.code = 'bad_request';
   return e;
+}
+
+/**
+ * Flatten `bd epic status --json` rows while leaving already-flat epic rows
+ * untouched.
+ *
+ * @param {unknown[]} rows
+ * @returns {Array<Record<string, unknown>>}
+ */
+function flattenEpicRows(rows) {
+  return rows.map((it) => {
+    if (it && typeof it === 'object' && 'epic' in it) {
+      const e = /** @type {any} */ (it).epic || {};
+      /** @type {Record<string, unknown>} */
+      const flat = {
+        id: String(e.id ?? ''),
+        title: e.title,
+        status: e.status,
+        issue_type: e.issue_type || 'epic',
+        created_at: e.created_at,
+        updated_at: e.updated_at,
+        closed_at: e.closed_at ?? null,
+        deleted_at: e.deleted_at ?? null,
+        total_children: /** @type {any} */ (it).total_children,
+        closed_children: /** @type {any} */ (it).closed_children,
+        eligible_for_close: /** @type {any} */ (it).eligible_for_close
+      };
+      return flat;
+    }
+    return /** @type {Record<string, unknown>} */ (it);
+  });
 }
 
 /**

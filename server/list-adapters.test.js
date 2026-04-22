@@ -239,33 +239,71 @@ describe('list adapters for subscription types', () => {
     }
   });
 
-  test('keeps flat epic rows from list --type epic output', async () => {
-    /** @type {import('vitest').Mock} */ (runBdJson).mockResolvedValue({
-      code: 0,
-      stdoutJson: [
-        {
-          id: 'bd-pub1730',
-          title: 'Publisher Links Mini Onboarding',
-          status: 'open',
-          issue_type: 'epic',
-          created_at: '2026-04-22T00:00:00.000Z',
-          updated_at: '2026-04-22T00:00:00.000Z',
-          closed_at: null
-        }
-      ]
-    });
+  test('merges epic counters onto flat list --type epic output without dropping unmatched epics', async () => {
+    /** @type {import('vitest').Mock} */ (runBdJson)
+      .mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: [
+          {
+            id: 'bd-pub1730',
+            title: 'Publisher Links Mini Onboarding',
+            status: 'open',
+            issue_type: 'epic',
+            created_at: '2026-04-22T00:00:00.000Z',
+            updated_at: '2026-04-22T00:00:00.000Z',
+            closed_at: null
+          },
+          {
+            id: 'bd-empty',
+            title: 'No children yet',
+            status: 'open',
+            issue_type: 'epic',
+            created_at: '2026-04-22T00:00:00.000Z',
+            updated_at: '2026-04-22T00:00:00.000Z',
+            closed_at: null
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        code: 0,
+        stdoutJson: [
+          {
+            epic: {
+              id: 'bd-pub1730',
+              title: 'Publisher Links Mini Onboarding',
+              status: 'open',
+              issue_type: 'epic',
+              created_at: '2026-04-22T00:00:00.000Z',
+              updated_at: '2026-04-22T00:00:00.000Z',
+              closed_at: null
+            },
+            total_children: 20,
+            closed_children: 1,
+            eligible_for_close: false
+          }
+        ]
+      });
 
     const res = await fetchListForSubscription({ type: 'epics' });
 
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.items).toHaveLength(1);
+      expect(res.items).toHaveLength(2);
       expect(res.items[0]).toMatchObject({
         id: 'bd-pub1730',
         title: 'Publisher Links Mini Onboarding',
         status: 'open',
+        issue_type: 'epic',
+        total_children: 20,
+        closed_children: 1
+      });
+      expect(res.items[1]).toMatchObject({
+        id: 'bd-empty',
+        title: 'No children yet',
+        status: 'open',
         issue_type: 'epic'
       });
+      expect('total_children' in res.items[1]).toBe(false);
     }
   });
 
